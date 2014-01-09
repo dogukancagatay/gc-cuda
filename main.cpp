@@ -1,5 +1,6 @@
 #include <iostream>
 #include "api/graph.hpp"
+#include "preprocessing/sharding.hpp"
 
 typedef struct global_parameters {
     int nshards;
@@ -7,6 +8,20 @@ typedef struct global_parameters {
 } params;
 
 using namespace std;
+
+//template<class T>
+//void print_edges(graph_t<T>& g){
+    ////print all edges of all vertices
+    //for(auto it = g.edges.begin(); it != g.edges.end(); ++it){
+        //cout << "Edges of node " << (*it).first << " :" <<endl;
+
+        //for(auto it2 = it->second->begin(); it2 != it->second->end(); ++it2){
+            //cout << "\t" << (*it).first << " -> " << *it2 << endl;
+        //}
+
+        //cout << endl;
+    //}
+//}
 
 int main(int argc, char** argv){
     /* keep global program parameters in par */
@@ -42,14 +57,9 @@ int main(int argc, char** argv){
     g.add_edge(3,4);
     g.add_edge(4,5);
 
-    //print all edges of all vertices
-    for(int i = 0; i < g.get_num_nodes(); i++){
-        cout << "Edges of node " << i << " :" <<endl;
-        for(auto it = g.edges[i]->begin(); it != g.edges[i]->end(); ++it){
-            cout << "\t" << i << " -> " << *it << endl;
-        }
-        cout << endl;
-    }
+    g.print_edges();
+
+    foo("kucuk.txt");
 
     return 0;
 }
