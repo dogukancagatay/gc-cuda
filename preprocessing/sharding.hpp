@@ -49,7 +49,7 @@ void shard_graph(params* par, char* gfilename){
         std::cout << "Number of nodes = " << in_edge_count.size() << std::endl;
         std::cout << "Number of edges = " << num_edges << std::endl;
 
-        gfile.close();
+        //gfile.close();
     }
     else {
         std::cout << "Unable to open file" << std::endl;
@@ -65,10 +65,123 @@ void shard_graph(params* par, char* gfilename){
     std::cout << "Max number of edges per shard = " << par->max_num_edges << std::endl;
     std::cout << "Number of shards = " << par->num_shards << std::endl;
 
-    /* create files for shards */ 
     /* assign vertices to shards */
+    hash_t node_to_shard;
+    int shard_index = 0;
+
+    for(auto it = in_edge_count.begin(); it != in_edge_count.end(); ++it){
+            int dest_node = (*it).first;
+            int shard_edge_count = 0;
+
+            // when we add the that node's edges to that shard, does it cross the max number of edges limit per shard
+            if(shard_edge_count + (*it).second > par->max_num_edges){
+                shard_index++; // move to the next shard
+                shard_edge_count = 0;
+            }
+
+            node_to_shard.insert(hash_t::value_type(dest_node, shard_index)); // assign node -> shard[i] 
+            shard_edge_count+= (*it).second; //add the edge count to shard edge count
+    }
+
+    /* cleanning some memory */
+    in_edge_count.clear();
+
+
+    /* create files for shards */ 
+    std::vector<std::ofstream*> ofs_shards;
+    std::vector<std::string> shard_fnames;
+
+    for(int i = 0; i< par->num_shards; ++i){
+        std::ostringstream buff;
+        buff << "shard_";
+        buff << gfilename << "_" << i;
+
+        shard_fnames.push_back(buff.str());
+
+        std::ofstream tempf(buff.str().c_str());
+        ofs_shards.push_back(&tempf);
+    }
+
     /* scan the graph file and start writing to shards */
+    gfile.clear(); // clear the state of file stream 
+    gfile.seekg(0, std::ios::beg); // go to the beginning of the file
+    
+    if(gfile.is_open()){
+        std::string eline;
+        while(getline(gfile, eline)){
+            /* get an edge from the file */
+            std::istringstream buff(eline);
+            int from, to;
+
+            buff >> from;
+            buff >> to;
+
+            //add the edge to its assigned shard
+            *(ofs_shards[node_to_shard[to]]) << from << " " << to << std::endl;
+        }
+
+        gfile.close();
+    }
+
+    /* close shard files */
+    for(int i = 0; i< par->num_shards; ++i){
+        ofs_shards[i]->close();
+    }
+    
+    /* cleanning some memory */
+    ofs_shards.clear();
+
+
+    /* read the shard files */
+    std::vector<std::ifstream*> ifs_shards;
+
+    for(int i = 0; i< par->num_shards; ++i){
+        std::ifstream tempf(shard_fnames[i]);
+        ifs_shards.push_back(&tempf);
+    }
+    
+    /* sort each shard according to their source node and write them to their file  */
+    for(int i = 0; i< par->num_shards; ++i){
+        std::map<int, std::vector<int> > shard_edge_list; // from --> to1,to2,to3
+
+        //read first
+        if(ifs_shards[i]->is_open()){
+            std::string eline;
+            while(getline(*ifs_shards[i], eline)){
+                /* get an edge from the file */
+                std::istringstream buff(eline);
+                int from, to;
+
+                buff >> from;
+                buff >> to;
+
+                if(shard_edge_list.find(from) == shard_edge_list.end()){ // if not in the map
+                    std::vector<int> temp_v;
+                    temp_v.push_back(to);
+
+                    shard_edge_list.insert(std::make_pair(from,temp_v));
+                }
+                else {
+                    shard_edge_list[from].push_back(to);
+                }
+            }
+
+            ifs_shards[i]->close();
+        }
+
+        //write the sorted edges
+        std::ofstream ofs_shard(shard_fnames[i]);
+        
+        //for each source node
+        for(auto it = shard_edge_list.begin(); it != shard_edge_list.end(); ++it){
+            //write the adj list to the shard in sorted order
+            for(auto it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2){
+                ofs_shard << (*it).first << " " << (*it2) << std::endl; 
+            }
+        }
+
+        ofs_shard.close();
+    }
 
 }
-
 #endif
