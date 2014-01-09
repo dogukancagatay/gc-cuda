@@ -41,6 +41,33 @@ class graph_t {
 
             return std::make_pair(from, to);
         }
+
+        void print_edges(){
+            //print all edges of all vertices
+            for(auto it = (*this).edges.begin(); it != (*this).edges.end(); ++it){
+                std::cout << "Edges of node " << (*it).first << " :" << std::endl;
+
+                for(auto it2 = it->second->begin(); it2 != it->second->end(); ++it2){
+                    std::cout << "\t" << (*it).first << " -> " << *it2 << std::endl;
+                }
+
+                std::cout << std::endl;
+            }
+        }
+
+        void print_edges(int n){
+            //print edges of node n
+            if(edges.find(n) != edges.end()){
+                std::cout << "Edges of node " << n << " :" << std::endl;
+
+                for(auto it2 = edges[n]->second->begin(); it2 != edges[n]->second->end(); ++it2){
+                    std::cout << "\t" << n << " -> " << *it2 << std::endl;
+                }
+
+                std::cout << std::endl;
+            }
+            else std::cout << "Node " << n << " has no edges." << std::endl;
+        }
 };
 
 #endif
