@@ -1,20 +1,25 @@
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 #include <iostream>
-#include <unordered_map>
+#include <boost/unordered_map.hpp>
+//#include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "utility.h"
+//#include "utility.hpp"
+
 
 template<class T>
 class graph_t {
     private:
+        typedef boost::unordered_map<int, std::vector<int>* > adj_hmap_t;
+        typedef boost::unordered_map<int, T> ndata_hmap_t;
+        typedef boost::unordered_map<std::pair<int, int>, T> edata_hmap_t;
         int num_nodes;
     public:
-        std::unordered_map<int, std::vector<int>* > edges;
-        std::unordered_map<int, T> node_data;
-        std::unordered_map<std::pair<int, int>, T> edge_data;
+        adj_hmap_t edges;
+        ndata_hmap_t node_data;
+        edata_hmap_t edge_data;
 
         graph_t() : num_nodes(0) {}
         ~graph_t(){
@@ -36,7 +41,7 @@ class graph_t {
             else {
                 std::vector<int> *vect = new std::vector<int>();
                 (*vect).push_back(to);
-                edges.insert(std::make_pair(from, vect));
+                edges.insert(adj_hmap_t::value_type(from, vect));
             }
 
             return std::make_pair(from, to);

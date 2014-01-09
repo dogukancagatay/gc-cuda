@@ -8,8 +8,8 @@ endif
 
 ifeq ($(UNAME_S),Darwin)
 CXX=clang++
-CPPFLAGS=-O2 -std=c++11 -Wall -march=native
-LDFLAGS=-O2
+CPPFLAGS=-O2 -std=c++11 -Wall -march=native -I /opt/local/include
+LDFLAGS=-O2 -L/opt/local/lib
 endif
 
 RM=rm -f

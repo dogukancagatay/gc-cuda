@@ -1,31 +1,20 @@
 #include <iostream>
+
 #include "api/graph.hpp"
+#include "api/utility.hpp"
 #include "preprocessing/sharding.hpp"
 
-typedef struct global_parameters {
-    int nshards;
-    int membudget;
-} params;
 
 using namespace std;
-
-//template<class T>
-//void print_edges(graph_t<T>& g){
-    ////print all edges of all vertices
-    //for(auto it = g.edges.begin(); it != g.edges.end(); ++it){
-        //cout << "Edges of node " << (*it).first << " :" <<endl;
-
-        //for(auto it2 = it->second->begin(); it2 != it->second->end(); ++it2){
-            //cout << "\t" << (*it).first << " -> " << *it2 << endl;
-        //}
-
-        //cout << endl;
-    //}
-//}
 
 int main(int argc, char** argv){
     /* keep global program parameters in par */
     params par;
+    par.mem_budget = 800;
+    par.edge_mem_cost = 60; // a fairly good cost
+    //par.edge_mem_cost = 24; // (an edge : 2 * 4 bytes = 8 bytes) + (hashmap cost = 16 bytes) = 24 bytes
+    //par.edge_mem_cost = 32; // keeping a double for each edge +8 bytes
+    //par.edge_mem_cost = 48; // keeping a double for each node so +(2 * 8 bytes) 
 
     // Sample graph
     graph_t<int> g;
@@ -59,7 +48,7 @@ int main(int argc, char** argv){
 
     g.print_edges();
 
-    foo("kucuk.txt");
+    shard_graph(&par, "data/kucuk.txt");
 
     return 0;
 }
