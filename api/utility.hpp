@@ -1,5 +1,6 @@
 #ifndef UTILITY_H
 #define UTILITY_H
+#include <string>
 
 template <class T>
 inline void hash_combine(std::size_t & seed, const T & v)
@@ -28,5 +29,17 @@ typedef struct global_parameters {
     int edge_mem_cost; //single edge memory cost in Bytes
     int max_num_edges; //per shard
 } params;
+
+std::string get_fname_from_path(char* filepath){
+    std::string str(filepath);
+
+    size_t found = str.rfind("/");
+    //if it can be found crop string
+    if (found != std::string::npos){
+        return str.substr(found + 1); //start from next char
+    }
+
+    return str;
+}
 
 #endif

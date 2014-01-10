@@ -52,7 +52,7 @@ void shard_graph(params* par, char* gfilename){
         //gfile.close();
     }
     else {
-        std::cout << "Unable to open file" << std::endl;
+        std::cout << "Unable to open file (#1). Exiting..." << std::endl;
         exit(1); //exit with error
     }
 
@@ -66,7 +66,7 @@ void shard_graph(params* par, char* gfilename){
     std::cout << "Number of shards = " << par->num_shards << std::endl;
 
     /* assign vertices to shards */
-    hash_t node_to_shard;
+    hash_t node_to_shard; // dest_node <-- shard_id
     int shard_index = 0;
 
     for(auto it = in_edge_count.begin(); it != in_edge_count.end(); ++it){
@@ -87,18 +87,30 @@ void shard_graph(params* par, char* gfilename){
     in_edge_count.clear();
 
 
+    for(int i = 0; i < par->num_shards; ++i){
+        std::cout << "Nodes in shard " << i << ":  " << std::endl;
+        for(auto it=node_to_shard.begin(); it != node_to_shard.end(); ++it){
+            if(it->second == i){
+                std::cout << "\t" << it->first << std::endl;
+            }
+        }
+    }
+
+
     /* create files for shards */ 
     std::vector<std::ofstream*> ofs_shards;
     std::vector<std::string> shard_fnames;
 
     for(int i = 0; i< par->num_shards; ++i){
         std::ostringstream buff;
-        buff << "shard_";
-        buff << gfilename << "_" << i;
+        buff << i << "_shard_";
+        buff << get_fname_from_path(gfilename);
 
         shard_fnames.push_back(buff.str());
 
-        std::ofstream tempf(buff.str().c_str());
+        std::cout << "Shard file created : " << buff.str() << std::endl;
+
+        std::ofstream tempf(buff.str());
         ofs_shards.push_back(&tempf);
     }
 
@@ -116,14 +128,20 @@ void shard_graph(params* par, char* gfilename){
             buff >> from;
             buff >> to;
 
+            //TODO it doesn't write to the file (I dont' know why)
+            std::cout<< "Writing to shard " << node_to_shard[to] << " dest " << to << std::endl;
             //add the edge to its assigned shard
-            *(ofs_shards[node_to_shard[to]]) << from << " " << to << std::endl;
+            (*(ofs_shards[node_to_shard[to]])) << from << " " << to << std::endl;
         }
 
         gfile.close();
     }
+    else {
+        std::cout << "Unable to open file (#2). Exiting..." << std::endl;
+        exit(1);
+    }
 
-    /* close shard files */
+    /* close shard files that are opened for writing*/
     for(int i = 0; i< par->num_shards; ++i){
         ofs_shards[i]->close();
     }
@@ -131,11 +149,15 @@ void shard_graph(params* par, char* gfilename){
     /* cleanning some memory */
     ofs_shards.clear();
 
+    /* sorting shard files according to their source files */
+    std::cout << "Starting sorting shard files." << std::endl;
 
     /* read the shard files */
     std::vector<std::ifstream*> ifs_shards;
 
     for(int i = 0; i< par->num_shards; ++i){
+        std::cout<< "Reading shard file : " << shard_fnames[i] << std::endl;
+
         std::ifstream tempf(shard_fnames[i]);
         ifs_shards.push_back(&tempf);
     }
@@ -167,6 +189,10 @@ void shard_graph(params* par, char* gfilename){
             }
 
             ifs_shards[i]->close();
+        }
+        else {
+            std::cout << "Unable to open file (#3). Exiting..." << std::endl;
+            exit(1);
         }
 
         //write the sorted edges
