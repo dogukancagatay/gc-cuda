@@ -9,6 +9,7 @@
 //#include <unordered_map>
 #include <utility>
 #include <math.h>
+#include <memory>
 
 #define MB_TO_BYTES 1024*1024
 
@@ -98,7 +99,7 @@ void shard_graph(params* par, char* gfilename){
 
 
     /* create files for shards */ 
-    std::vector<std::ofstream*> ofs_shards;
+    std::vector<std::shared_ptr<std::ofstream> > ofs_shards;
     std::vector<std::string> shard_fnames;
 
     for(int i = 0; i< par->num_shards; ++i){
@@ -110,8 +111,9 @@ void shard_graph(params* par, char* gfilename){
 
         std::cout << "Shard file created : " << buff.str() << std::endl;
 
-        std::ofstream tempf(buff.str());
-        ofs_shards.push_back(&tempf);
+        //std::ofstream tempf(buff.str());
+        //ofs_shards.push_back(tempf);
+        ofs_shards.push_back(std::make_shared<std::ofstream>(buff.str()));
     }
 
     /* scan the graph file and start writing to shards */
@@ -132,6 +134,7 @@ void shard_graph(params* par, char* gfilename){
             std::cout<< "Writing to shard " << node_to_shard[to] << " dest " << to << std::endl;
             //add the edge to its assigned shard
             (*(ofs_shards[node_to_shard[to]])) << from << " " << to << std::endl;
+            //ofs_shards[node_to_shard[to]] << from << " " << to << std::endl;
         }
 
         gfile.close();
@@ -144,6 +147,7 @@ void shard_graph(params* par, char* gfilename){
     /* close shard files that are opened for writing*/
     for(int i = 0; i< par->num_shards; ++i){
         ofs_shards[i]->close();
+        //ofs_shards[i].close();
     }
     
     /* cleanning some memory */
