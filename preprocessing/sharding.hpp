@@ -17,7 +17,8 @@
 
 typedef boost::unordered_map<int, int> hash_t;
 
-void shard_graph(params* par, char* gfilename){
+template<class T>
+void shard_graph(params* par, graph_t<T>* g, char* gfilename){
     /* Open the graph file */
     std::ifstream gfile(gfilename);
     hash_t in_edge_count; // node <-- number of in edges
@@ -58,7 +59,7 @@ void shard_graph(params* par, char* gfilename){
     }
 
     /* calculate number of shards needed */
-    int membudget_b = par->mem_budget * MB_TO_BYTES;
+    float membudget_b = par->mem_budget * MB_TO_BYTES;
     par->max_num_edges = (int)floor((double)membudget_b / (double)par->edge_mem_cost);
     par->num_shards = (int)ceil((double)num_edges / (double)par->max_num_edges);
 
@@ -70,18 +71,17 @@ void shard_graph(params* par, char* gfilename){
     hash_t node_to_shard; // dest_node <-- shard_id
     int shard_index = 0;
 
-    for(auto it = in_edge_count.begin(); it != in_edge_count.end(); ++it){
-            int dest_node = (*it).first;
-            int shard_edge_count = 0;
+    int shard_edge_count = 0;
+    //for(auto it = in_edge_count.begin(); it != in_edge_count.end(); ++it){
+    for(int i = 0; i < in_edge_count.size(); ++i){
+        // when we add the that node's edges to that shard, does it cross the max number of edges limit per shard
+        if(shard_edge_count + in_edge_count[i] > par->max_num_edges){
+            shard_index++; // move to the next shard
+            shard_edge_count = 0;
+        }
 
-            // when we add the that node's edges to that shard, does it cross the max number of edges limit per shard
-            if(shard_edge_count + (*it).second > par->max_num_edges){
-                shard_index++; // move to the next shard
-                shard_edge_count = 0;
-            }
-
-            node_to_shard.insert(hash_t::value_type(dest_node, shard_index)); // assign node -> shard[i] 
-            shard_edge_count+= (*it).second; //add the edge count to shard edge count
+        node_to_shard.insert(hash_t::value_type(i, shard_index)); // assign node -> shard[i] 
+        shard_edge_count+= in_edge_count[i]; //add the edge count to shard edge count
     }
 
     /* cleanning some memory */

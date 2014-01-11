@@ -10,13 +10,23 @@ using namespace std;
 int main(int argc, char** argv){
     /* keep global program parameters in par */
     params par;
-    par.mem_budget = 800;
+    par.mem_budget = 0.000370;
     par.edge_mem_cost = 60; // a fairly good cost
     //par.edge_mem_cost = 24; // (an edge : 2 * 4 bytes = 8 bytes) + (hashmap cost = 16 bytes) = 24 bytes
     //par.edge_mem_cost = 32; // keeping a double for each edge +8 bytes
     //par.edge_mem_cost = 48; // keeping a double for each node so +(2 * 8 bytes) 
 
     // Sample graph
+    graph_t<int> g;
+
+    shard_graph(&par, &g, "data/kucuk.txt");
+
+    return 0;
+}
+
+/*
+ * Sample graph with api
+ *
     graph_t<int> g;
 
     //add vertices
@@ -47,8 +57,5 @@ int main(int argc, char** argv){
     g.add_edge(4,5);
 
     g.print_edges();
-
-    shard_graph(&par, "data/kucuk.txt");
-
-    return 0;
-}
+     
+*/

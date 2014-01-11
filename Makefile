@@ -21,7 +21,7 @@ EXEC=main
 all: $(OBJS)
 	$(CXX) $(LDFLAGS) -o $(EXEC) $(OBJS) $(LDLIBS)
 
-%.o: %.cu 
+%.o: %.cpp
 	$(CXX) $(CFLAGS) $(CPPFLAGS) -c $<
 
 clean:

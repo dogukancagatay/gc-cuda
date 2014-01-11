@@ -25,7 +25,7 @@ namespace std
 
 typedef struct global_parameters {
     int num_shards;
-    int mem_budget; //in MB
+    float mem_budget; //in MB
     int edge_mem_cost; //single edge memory cost in Bytes
     int max_num_edges; //per shard
 } params;
