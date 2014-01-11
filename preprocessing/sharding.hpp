@@ -10,6 +10,7 @@
 #include <utility>
 #include <math.h>
 #include <memory>
+#include <map>
 
 #define MB_TO_BYTES 1024*1024
 
