@@ -111,8 +111,6 @@ void shard_graph(params* par, char* gfilename){
 
         std::cout << "Shard file created : " << buff.str() << std::endl;
 
-        //std::ofstream tempf(buff.str());
-        //ofs_shards.push_back(tempf);
         ofs_shards.push_back(std::make_shared<std::ofstream>(buff.str()));
     }
 
@@ -134,7 +132,6 @@ void shard_graph(params* par, char* gfilename){
             std::cout<< "Writing to shard " << node_to_shard[to] << " dest " << to << std::endl;
             //add the edge to its assigned shard
             (*(ofs_shards[node_to_shard[to]])) << from << " " << to << std::endl;
-            //ofs_shards[node_to_shard[to]] << from << " " << to << std::endl;
         }
 
         gfile.close();
@@ -147,7 +144,6 @@ void shard_graph(params* par, char* gfilename){
     /* close shard files that are opened for writing*/
     for(int i = 0; i< par->num_shards; ++i){
         ofs_shards[i]->close();
-        //ofs_shards[i].close();
     }
     
     /* cleanning some memory */
@@ -157,13 +153,14 @@ void shard_graph(params* par, char* gfilename){
     std::cout << "Starting sorting shard files." << std::endl;
 
     /* read the shard files */
-    std::vector<std::ifstream*> ifs_shards;
+    std::vector<std::shared_ptr<std::ifstream> > ifs_shards;
 
     for(int i = 0; i< par->num_shards; ++i){
         std::cout<< "Reading shard file : " << shard_fnames[i] << std::endl;
 
-        std::ifstream tempf(shard_fnames[i]);
-        ifs_shards.push_back(&tempf);
+        //std::ifstream tempf(shard_fnames[i]);
+        //ifs_shards.push_back(&tempf);
+        ifs_shards.push_back(std::make_shared<std::ifstream>(shard_fnames[i]));
     }
     
     /* sort each shard according to their source node and write them to their file  */
