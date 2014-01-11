@@ -52,7 +52,7 @@ class graph_t {
             for(auto it = (*this).edges.begin(); it != (*this).edges.end(); ++it){
                 std::cout << "Edges of node " << (*it).first << " :" << std::endl;
 
-                for(auto it2 = it->second->begin(); it2 != it->second->end(); ++it2){
+                for(auto it2 = it->begin(); it2 != it->end(); ++it2){
                     std::cout << "\t" << (*it).first << " -> " << *it2 << std::endl;
                 }
 
@@ -65,7 +65,7 @@ class graph_t {
             if(edges.find(n) != edges.end()){
                 std::cout << "Edges of node " << n << " :" << std::endl;
 
-                for(auto it2 = edges[n]->second->begin(); it2 != edges[n]->second->end(); ++it2){
+                for(auto it2 = edges[n]->begin(); it2 != edges[n]->end(); ++it2){
                     std::cout << "\t" << n << " -> " << *it2 << std::endl;
                 }
 
