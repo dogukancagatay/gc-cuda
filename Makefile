@@ -14,18 +14,22 @@ endif
 
 RM=rm -f
 
-SRCS=main.cpp
-OBJS=main.o
+SRCCPPS=main.cpp
+SRCCUS=gc_cuda.cu
+
+OBJCPPS=main.o
+OBJCUS=gc_cuda.o
 EXEC=main
 
-all: $(OBJS)
-		$(CXX) $(LDFLAGS) -o $(EXEC) $(OBJS) $(LDLIBS)
+all: 
+	nvcc -c gc_cuda.cu
+	g++ -std=c++0x api/utility.cpp main.cpp api/graph.cpp gc_cuda.o -L /usr/local/cuda/lib64 -lcudart -I /usr/local/cuda/include -lcuda -o main
 
-%.o: %.cpp
-		$(CXX) $(CFLAGS) $(CPPFLAGS) -c $<
-
+gc_cuda.o:
+	nvcc -c gc_cuda.cu
+	
 clean:
-		$(RM) $(OBJS) $(EXEC) *.txt
+		$(RM) $(OBJS) $(EXEC) *.txt api/*.o gc_cuda.o
 
 dist-clean:
 		$(RM) $(EXEC)

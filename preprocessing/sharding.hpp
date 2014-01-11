@@ -6,7 +6,6 @@
 #include <string>
 #include <sstream>
 #include <boost/unordered_map.hpp>
-//#include <unordered_map>
 #include <utility>
 #include <math.h>
 #include <memory>
@@ -18,13 +17,11 @@
 
 typedef boost::unordered_map<int, int> hash_t;
 
-template<class T>
-void shard_graph(params* par, graph_t<T>* g, char* gfilename){
+void shard_graph(params* par, graph_t* g, char* gfilename){
     /* Open the graph file */
     std::ifstream gfile(gfilename);
-    hash_t in_edge_count; // node <-- number of in edges
+    //hash_t g->in_edge_counts; // node <-- number of in edges
 
-    int num_edges = 0;
 
     if(gfile.is_open()){
         std::string eline;
@@ -36,21 +33,36 @@ void shard_graph(params* par, graph_t<T>* g, char* gfilename){
             buff >> from;
             buff >> to;
 
-            if(in_edge_count.find(to) == in_edge_count.end()) { //if the node is encountered for the first time
-                in_edge_count.insert(hash_t::value_type(to,1));
+            if(g->in_edge_counts.find(to) == g->in_edge_counts.end()) { //if the node is encountered for the first time
+                g->in_edge_counts.insert(hash_t::value_type(to,1));
             }
             else {
-                in_edge_count[to] += 1;
+                g->in_edge_counts[to] += 1;
+            }
+
+            if(g->out_edge_counts.find(from) == g->out_edge_counts.end()) { //if the node is encountered for the first time
+                g->out_edge_counts.insert(hash_t::value_type(from,1));
+            }
+            else {
+                g->out_edge_counts[from] += 1;
             }
         }
 
-        for(auto it = in_edge_count.begin(); it != in_edge_count.end(); ++it){
-            std::cout << it->first << " : " << it->second << std::endl;
-            num_edges += it->second;
+        g->num_nodes = g->in_edge_counts.size();
+
+        std::cout << "In edge counts:" << std::endl;
+        for(auto it = g->in_edge_counts.begin(); it != g->in_edge_counts.end(); ++it){
+            std::cout << "\t" << it->first << " : " << it->second << std::endl;
+            g->num_edges += it->second;
         }
 
-        std::cout << "Number of nodes = " << in_edge_count.size() << std::endl;
-        std::cout << "Number of edges = " << num_edges << std::endl;
+        std::cout << "Out edge counts:" << std::endl;
+        for(auto it = g->out_edge_counts.begin(); it != g->out_edge_counts.end(); ++it){
+            std::cout << "\t" << it->first << " : " << it->second << std::endl;
+        }
+
+        std::cout << "Number of nodes = " << g->num_nodes << std::endl;
+        std::cout << "Number of edges = " << g->num_edges << std::endl;
 
         //gfile.close();
     }
@@ -62,7 +74,7 @@ void shard_graph(params* par, graph_t<T>* g, char* gfilename){
     /* calculate number of shards needed */
     float membudget_b = par->mem_budget * MB_TO_BYTES;
     par->max_num_edges = (int)floor((double)membudget_b / (double)par->edge_mem_cost);
-    par->num_shards = (int)ceil((double)num_edges / (double)par->max_num_edges);
+    par->num_shards = (int)ceil((double)g->num_edges / (double)par->max_num_edges);
 
 
     std::cout << "Max number of edges per shard = " << par->max_num_edges << std::endl;
@@ -73,20 +85,20 @@ void shard_graph(params* par, graph_t<T>* g, char* gfilename){
     int shard_index = 0;
 
     int shard_edge_count = 0;
-    //for(auto it = in_edge_count.begin(); it != in_edge_count.end(); ++it){
-    for(int i = 0; i < in_edge_count.size(); ++i){
+    //for(auto it = g->in_edge_counts.begin(); it != g->in_edge_counts.end(); ++it){
+    for(int i = 0; i < g->in_edge_counts.size(); ++i){
         // when we add the that node's edges to that shard, does it cross the max number of edges limit per shard
-        if(shard_edge_count + in_edge_count[i] > par->max_num_edges){
+        if(shard_edge_count + g->in_edge_counts[i] > par->max_num_edges){
             shard_index++; // move to the next shard
             shard_edge_count = 0;
         }
 
         node_to_shard.insert(hash_t::value_type(i, shard_index)); // assign node -> shard[i] 
-        shard_edge_count+= in_edge_count[i]; //add the edge count to shard edge count
+        shard_edge_count+= g->in_edge_counts[i]; //add the edge count to shard edge count
     }
 
     /* cleanning some memory */
-    in_edge_count.clear();
+    g->in_edge_counts.clear();
 
 
     for(int i = 0; i < par->num_shards; ++i){
@@ -101,14 +113,13 @@ void shard_graph(params* par, graph_t<T>* g, char* gfilename){
 
     /* create files for shards */ 
     std::vector<std::shared_ptr<std::ofstream> > ofs_shards;
-    std::vector<std::string> shard_fnames;
 
     for(int i = 0; i< par->num_shards; ++i){
         std::ostringstream buff;
         buff << i << "_shard_";
         buff << get_fname_from_path(gfilename);
 
-        shard_fnames.push_back(buff.str());
+        g->shard_fnames.push_back(buff.str());
 
         std::cout << "Shard file created : " << buff.str() << std::endl;
 
@@ -129,7 +140,6 @@ void shard_graph(params* par, graph_t<T>* g, char* gfilename){
             buff >> from;
             buff >> to;
 
-            //TODO it doesn't write to the file (I dont' know why)
             std::cout<< "Writing to shard " << node_to_shard[to] << " dest " << to << std::endl;
             //add the edge to its assigned shard
             (*(ofs_shards[node_to_shard[to]])) << from << " " << to << std::endl;
@@ -157,13 +167,14 @@ void shard_graph(params* par, graph_t<T>* g, char* gfilename){
     std::vector<std::shared_ptr<std::ifstream> > ifs_shards;
 
     for(int i = 0; i< par->num_shards; ++i){
-        std::cout<< "Reading shard file : " << shard_fnames[i] << std::endl;
+        std::cout<< "Reading shard file : " << g->shard_fnames[i] << std::endl;
 
-        //std::ifstream tempf(shard_fnames[i]);
+        //std::ifstream tempf(g->shard_fnames[i]);
         //ifs_shards.push_back(&tempf);
-        ifs_shards.push_back(std::make_shared<std::ifstream>(shard_fnames[i]));
+        ifs_shards.push_back(std::make_shared<std::ifstream>(g->shard_fnames[i]));
     }
     
+    std::cout << "Writing sorted shard files."<< std::endl;
     /* sort each shard according to their source node and write them to their file  */
     for(int i = 0; i< par->num_shards; ++i){
         std::map<int, std::vector<int> > shard_edge_list; // from --> to1,to2,to3
@@ -198,18 +209,20 @@ void shard_graph(params* par, graph_t<T>* g, char* gfilename){
         }
 
         //write the sorted edges
-        std::ofstream ofs_shard(shard_fnames[i]);
+        std::ofstream ofs_shard(g->shard_fnames[i]);
         
         //for each source node
         for(auto it = shard_edge_list.begin(); it != shard_edge_list.end(); ++it){
             //write the adj list to the shard in sorted order
             for(auto it2 = (*it).second.begin(); it2 != (*it).second.end(); ++it2){
-                ofs_shard << (*it).first << " " << (*it2) << std::endl; 
+                ofs_shard << (*it).first << " " << (*it2) << " " << (double)(0.0) << std::endl; 
             }
         }
 
         ofs_shard.close();
     }
+
+    std::cout << "Initial sharding is finished." << std::endl;
 
 }
 #endif
