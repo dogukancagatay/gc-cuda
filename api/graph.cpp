@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include <string>
+#include <cstdlib>
 
 #include "graph.hpp"
 
@@ -62,4 +63,12 @@ void graph_t::print_edges(int n){
         std::cout << std::endl;
     }
     else std::cout << "Node " << n << " has no edges." << std::endl;
+}
+
+graph_t::~graph_t(){
+    for(auto it=edges.begin(); it != edges.end(); ++it){
+        delete it->second;
+    }
+
+    free(shard_to_node);
 }

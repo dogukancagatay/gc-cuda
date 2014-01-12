@@ -10,6 +10,7 @@
 #include <math.h>
 #include <memory>
 #include <map>
+#include <cstdlib>
 
 #define MB_TO_BYTES 1024*1024
 
@@ -50,15 +51,23 @@ void shard_graph(params* par, graph_t* g, char* gfilename){
 
         g->num_nodes = g->in_edge_counts.size();
 
+#ifdef DEBUG
         std::cout << "In edge counts:" << std::endl;
+#endif
         for(auto it = g->in_edge_counts.begin(); it != g->in_edge_counts.end(); ++it){
+#ifdef DEBUG
             std::cout << "\t" << it->first << " : " << it->second << std::endl;
+#endif
             g->num_edges += it->second;
         }
 
+#ifdef DEBUG
         std::cout << "Out edge counts:" << std::endl;
+#endif
         for(auto it = g->out_edge_counts.begin(); it != g->out_edge_counts.end(); ++it){
+#ifdef DEBUG
             std::cout << "\t" << it->first << " : " << it->second << std::endl;
+#endif
         }
 
         std::cout << "Number of nodes = " << g->num_nodes << std::endl;
@@ -73,8 +82,9 @@ void shard_graph(params* par, graph_t* g, char* gfilename){
 
     /* calculate number of shards needed */
     float membudget_b = par->mem_budget * MB_TO_BYTES;
-    par->max_num_edges = (int)floor((double)membudget_b / (double)par->edge_mem_cost);
+    par->max_num_edges = ((int)floor((double)membudget_b / (double)par->edge_mem_cost)) / 2; // over 2 b/c assuming vertex_out = vertex_in
     par->num_shards = (int)ceil((double)g->num_edges / (double)par->max_num_edges);
+    g->num_shards = par->num_shards;
 
 
     std::cout << "Max number of edges per shard = " << par->max_num_edges << std::endl;
@@ -82,6 +92,10 @@ void shard_graph(params* par, graph_t* g, char* gfilename){
 
     /* assign vertices to shards */
     hash_t node_to_shard; // dest_node <-- shard_id
+    
+    for(int i = 0; i < par->num_shards; ++i){
+    }
+
     int shard_index = 0;
 
     int shard_edge_count = 0;
@@ -95,20 +109,38 @@ void shard_graph(params* par, graph_t* g, char* gfilename){
 
         node_to_shard.insert(hash_t::value_type(i, shard_index)); // assign node -> shard[i] 
         shard_edge_count+= g->in_edge_counts[i]; //add the edge count to shard edge count
+
     }
 
     /* cleanning some memory */
-    g->in_edge_counts.clear();
+    //g->in_edge_counts.clear();
 
+    //assign shards to vertices
+    //g->shard_to_node holds shard to node assignments
 
+    //g->shard_to_node.resize(par->num_shardsi + 1); //allocate memory
+    g->shard_to_node = (int*) malloc((par->num_shards + 1) * sizeof(int));//allocate memory
     for(int i = 0; i < par->num_shards; ++i){
+        int min_dest = 2000000000;
+
+#ifdef DEBUG
         std::cout << "Nodes in shard " << i << ":  " << std::endl;
+#endif
         for(auto it=node_to_shard.begin(); it != node_to_shard.end(); ++it){
             if(it->second == i){
+#ifdef DEBUG
                 std::cout << "\t" << it->first << std::endl;
+#endif
+
+                if(it->first < min_dest)
+                    min_dest = it->first;
             }
         }
+        g->shard_to_node[i] = min_dest;
+        
     }
+    //last element is number of nodes
+    g->shard_to_node[par->num_shards] = g->num_nodes;
 
 
     /* create files for shards */ 
@@ -140,7 +172,9 @@ void shard_graph(params* par, graph_t* g, char* gfilename){
             buff >> from;
             buff >> to;
 
+#ifdef DEBUG
             std::cout<< "Writing to shard " << node_to_shard[to] << " dest " << to << std::endl;
+#endif
             //add the edge to its assigned shard
             (*(ofs_shards[node_to_shard[to]])) << from << " " << to << std::endl;
         }

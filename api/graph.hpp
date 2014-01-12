@@ -21,12 +21,15 @@ class graph_t {
         count_hmap_t in_edge_counts;
         count_hmap_t out_edge_counts;
         std::vector<std::string> shard_fnames;
+        int* shard_to_node;
+        int num_shards;
 
         int num_nodes;
         int num_edges;
 
         graph_t() : num_nodes(0), num_edges(0) {}
-        ~graph_t(){}
+        ~graph_t();
+
         void set_num_nodes(int num);
         int get_num_nodes();
         int add_vertex();
