@@ -13,7 +13,7 @@ int main(int argc, char** argv){
 
         std::string eline;
         //std::unordered_map<int,int> in_edge_count; // node <-- number of in edges
-        std::unordered_map<int,int> labels; // node_label <-- node_id
+        std::unordered_map<std::string,int> labels; // node_label <-- node_id
         
         int node_count = 0;
 
@@ -21,7 +21,8 @@ int main(int argc, char** argv){
             while(getline(gfile, eline)){
                 /* get an edge from the file */
                 std::istringstream buff(eline);
-                int from_label, to_label, from, to;
+                std::string from_label, to_label;
+                int from, to;
 
                 buff >> from_label;
                 buff >> to_label;

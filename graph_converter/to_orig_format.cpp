@@ -11,11 +11,12 @@ int main(int argc, char** argv){
         std::ifstream gfile(argv[1]);
         std::ifstream afile(argv[2]);
         std::ofstream ofile(argv[3]);
+
         int num_cols = atoi(argv[4]);
 
         std::string eline;
-        std::unordered_map<int,int> labels; // node_label <-- node_id taken from original graph file
-        std::unordered_map<int,int> rev_labels; // node_id <-- node_label
+        std::unordered_map<std::string,int> labels; // node_label <-- node_id taken from original graph file
+        std::unordered_map<int,std::string> rev_labels; // node_id <-- node_label
         
         int node_count = 0;
 
@@ -24,7 +25,8 @@ int main(int argc, char** argv){
 
                 /* get an edge from the file */
                 std::istringstream buff(eline);
-                int from_label, to_label, from, to;
+                std::string from_label, to_label;
+                int from, to;
 
                 buff >> from_label;
                 buff >> to_label;
@@ -60,7 +62,8 @@ int main(int argc, char** argv){
 
                     /* get an edge from the file */
                     std::istringstream buff(eline);
-                    int node_id, orig_label;
+                    int node_id;
+                    std::string orig_label, temp;
 
                     for(int i = 0; i < num_cols; i++){
                         if(i != 0){
@@ -73,6 +76,13 @@ int main(int argc, char** argv){
                             ofile << orig_label;
                         }
                         else std::cout<< node_id <<" not in the map" << std::endl;
+                    }
+
+                    //write the rest of the columns as it is
+                    while((char)buff.peek() != '\n' && buff.good()){
+                        ofile << " "; // put space character between values
+                        buff >> temp;
+                        ofile << temp;
                     }
 
                     ofile << std::endl; // after reading all values on the line, end the line in output file.
