@@ -1,7 +1,7 @@
 UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S),Linux)
-CXX=g++
+CXX=clang++
 CPPFLAGS=-O2 -std=c++11 -Wall -march=native
 LDFLAGS=-O2 
 endif
